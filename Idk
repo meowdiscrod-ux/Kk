@@ -1,0 +1,44 @@
+name: Build Combat Client
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unzip project
+        run: |
+          mkdir project
+          unzip -o "$(ls *.zip | head -1)" -d project
+          DIR=$(dirname "$(find project -name build.gradle | head -1)")
+          echo "DIR=$DIR" >> $GITHUB_ENV
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 9.2.1
+
+      - name: Build
+        run: gradle build --no-daemon
+        working-directory: ${{ env.DIR }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CombatClient-1.21.11
+          path: ${{ env.DIR }}/build/libs/combatclient-1.0.0.jar
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          files: ${{ env.DIR }}/build/libs/combatclient-1.0.0.jar
